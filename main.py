@@ -1,5 +1,18 @@
 
 
+"""
+
+## Python 3.6 por SnMaror, primer upload a github.
+
+# Fue hecho sin tener en cuenta mostrarselo a alguien asi que si alguien lo ve no me maten por la falta de comentarios
+# como dije en la descripcon se podria mejorar de todo en este programita jaja desde hacerlo 
+# mas optimo a hacerlo mas estetico o agregarle funciones
+
+# Ni siquiera voy a explicar como funciona #Hdp :v
+
+
+"""
+
 #### imports
 
 from tkinter import *
@@ -10,7 +23,6 @@ from random import randint
 from threading import Thread
 from win32api import GetSystemMetrics
 import glob,time,os,re
-from shutil import copyfile
 
 #########
 ######### Classes

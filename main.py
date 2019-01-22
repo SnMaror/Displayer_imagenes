@@ -1,7 +1,6 @@
 
 
 """
-
 ## Python 3.6 por SnMaror, primer upload a github.
 
 # Fue hecho sin tener en cuenta mostrarselo a alguien asi que si alguien lo ve no me maten por la falta de comentarios
@@ -44,9 +43,15 @@ class Img():
 		if "size" in kwargs:
 			self.resize(kwargs["size"])
 
+		self.frames = []
+		self.actual_frame = 0
 		self.last_center = None
 		self.last_factor = None
 
+
+		self.set_frames()
+
+		print(len(self.frames))
 	def adjust(self,size):
 		if self.img == None:return
 
@@ -180,6 +185,28 @@ class Img():
 	def returnTk(self):
 		if self.img == None:return
 		return ImageTk.PhotoImage(self.img)
+
+	def update(self,indice=None):
+		if len(self.frames)>0:
+			if isinstance(indice,int):
+				self.actual_frame = indice
+
+			self.img = self.frames[self.actual_frame]
+			self.actual_frame+=1
+			if not self.actual_frame<len(self.frames):
+				self.actual_frame=0
+			return self.img
+
+	def set_frames(self):
+		self.frames= []
+		while 1:
+			try:
+				self.img.seek(self.img.tell()+1)
+				self.frames.append(self.img.copy())
+			except EOFError:
+				self.img.seek(0)
+				break # end of sequence
+
 
 
 class MyTk(Tk):
@@ -318,7 +345,7 @@ def create_image(url):
 
 def add_photo():
 
-	global photos,lock,indice
+	global photos,lock,indice,run_animation
 
 	if lock:return
 	
@@ -338,16 +365,30 @@ def add_photo():
 			photos.append([name,str(name.split(r"/")[-1]),1])
 			
 			indice = len(photos)-1
-	
-	show_photo()
+	run_animation = False
+	window.after(70, show_photo)
 	return True
 
 
 
+
+def change_picture(label_element):
+	global actual_foto,run_animation
+
+	try:
+		photos[indice][0].update()
+		actual_foto = photos[indice][0].returnTk()
+	except:
+		pass
+	label_element.config(text = photos[indice][1],image =actual_foto)
+	
+	if len(photos[indice][0].frames)>0 and run_animation:
+		window.after(70,change_picture,label_element)
+
 ###### Show an picture function
 
 def show_photo(index = None,label_element = None,**kwargs):
-	global indice,actual_foto,Image_Label,photos,indice_shower
+	global indice,actual_foto,Image_Label,photos,indice_shower,run_animation
 
 	if index == None: #index
 		index = indice
@@ -377,30 +418,33 @@ def show_photo(index = None,label_element = None,**kwargs):
 
 		if actual_foto == None:
 			actual_foto = photos[index][0].returnTk()
+	
 	except Exception as e:
 		print(e)
 		photos.remove(photos[index])
 
 		if indice == len(photos):
 			indice-=1
-
-		show_photo()
+		run_animation = False
+		window.after(70, show_photo)
 		return False
 
-
-	label_element.config(text = photos[index][1],image =actual_foto)
-	
+	try:
+		
+		photos[indice][0].update(0)
+	except Exception as e:
+		pass
+	run_animation = True
+	change_picture(label_element)	
 	if label_element == Image_Label:
 		img_name_label.config(text = photos[index][1])
 		indice_shower.config(text=index+1) #changing index
 
 
-
-
-###### advance automatic function
+###### advance automatic function grupo
 
 def advance_automatic():
-	global lock,random_next,indice,photos,advance_automatic_unite
+	global lock,random_next,indice,photos,advance_automatic_unite,run_animation
 	
 	while lock:
 		if not lock:
@@ -417,8 +461,8 @@ def advance_automatic():
 			elif indice >= len(photos):
 				indice = 0
 
-
-		show_photo()
+		run_animation = False
+		window.after(70, show_photo)
 
 
 
@@ -487,7 +531,9 @@ def cambiar_datos_de_imagen():
 	new_name.set(photos[indice][1])
 	new_duration.set(photos[indice][2])
 
-	show_photo() # reshowing
+	run_animation = False
+
+	window.after(70, show_photo) # reshowing
 
 
 
@@ -530,23 +576,6 @@ def display_main():
 
 	image_shower.pack()
 
-
-def set_siguientes_focus(nuevos,direccion = ""):
-	global n_arriba,n_abajo,n_izquierda,n_derecha
-
-	if direccion == "Up" and n_arriba != None:
-		n_arriba.focus_set()
-	elif direccion == "Down" and n_abajo != None:
-		n_abajo.focus_set()
-	elif direccion == "Left" and n_izquierda != None:
-		n_izquierda.focus_set()
-	elif direccion == "Right" and n_derecha != None:
-		n_derecha.focus_set()
-
-	n_arriba = nuevos[0]
-	n_abajo = nuevos[1]
-	n_izquierda = nuevos[2]
-	n_derecha = nuevos[3]
 
 def change_interface_data():
 	global lock,focus_control,cambiando_indice,new_name,new_indice
@@ -603,8 +632,7 @@ def change_interface_data():
 
 def managePhoto(char):
 
-	global indice,actual_foto,lock,focus_control,cambiando_indice,posicionando_indice,random_next,advance_automatic_unite
-	global n_abajo,n_arriba,n_izquierda,n_derecha
+	global indice,actual_foto,lock,focus_control,cambiando_indice,posicionando_indice,random_next,advance_automatic_unite,run_animation
 
 
 	char = char.keycode
@@ -622,7 +650,10 @@ def managePhoto(char):
 				photos[indice][0].last_factor = None
 				photos[indice][0].last_center = None
 
-			show_photo()
+
+			run_animation = False
+
+			window.after(70, show_photo)
 
 	elif char == 37: # Left arrow process, movement in photo's display		
 		if len(photos) <= 0: return
@@ -638,7 +669,9 @@ def managePhoto(char):
 				photos[indice][0].last_factor = None
 				photos[indice][0].last_center = None
 
-			show_photo()
+			run_animation = False
+
+			window.after(70, show_photo)
 
 
 	elif char == 13: #Return, Changing the index of a photo, setting images propertys and others...
@@ -672,11 +705,15 @@ def managePhoto(char):
 				if isinstance(photos[indice][0],Img):
 					photos[indice][0].last_factor = None
 					photos[indice][0].last_center = None
-				show_photo()
+	
 
 				lock = False
 				posicionando_indice = False
 				change_data_frame.pack_forget()
+
+				run_animation = False
+
+				window.after(70, show_photo)
 			except:
 				messagebox.showerror(message="Error con el indice, ponga uno valido.")
 		elif lock and invertir:
@@ -725,8 +762,17 @@ def managePhoto(char):
 		if len(photos) <= 0: return
 		if not lock and not cambiando_indice and not creating_group and not posicionando_indice:
 			invertir_interface()
+	elif char == 32:
+		if run_animation:
+			run_animation = False
+		else:
+			change_picture(Image_Label)
+	elif char == 80:
+		if not run_animation:
+			run_animation = True
+			change_picture(Image_Label)
 	else:
-		pass
+		print(char)
 #		print(char)
 		#print(window.winfo_size())
 
@@ -762,14 +808,17 @@ def exit_(*args,**kwargs):
 
 
 def resize_function(evento,**kwargs):
-	global width,height
+	global width,height,run_animation
 	if (evento.width >= width or evento.height >= height) and len(photos)>0:
-		show_photo()
+		run_animation = False
+
+		window.after(70,change_picture,Image_Label)
 
 
 def load_group(grupo_name):
-	global actual_grupo,start_interface_frame,lock
+	global actual_grupo,start_interface_frame,lock,run_animation,indice
 
+	indice = 0
 
 	loading= load_photos(grupo_name+".pan")
 
@@ -786,7 +835,8 @@ def load_group(grupo_name):
 		actual_grupo = grupo_name
 		actual_grupo_label.config(text =actual_grupo)
 
-		show_photo()
+		run_animation = False
+		window.after(70, show_photo)
 
 
 def recover_sesion():
@@ -879,7 +929,7 @@ def nuevo_grupo_funct():
 
 def crear_grupo_nuevo():
 	global nombre_del_grupo,ngf_desde,ngf_hasta
-	global photos,indice,actual_grupo
+	global photos,indice,actual_grupo,run_animation
 
 	nombre= nombre_del_grupo.get()
 	desde = ngf_desde.get()
@@ -939,7 +989,8 @@ def crear_grupo_nuevo():
 	
 	indice = 0
 	
-	show_photo()
+	run_animation = False
+	window.after(70, show_photo)
 	cancelar_la_creacion_de_grupo()
 
 
@@ -955,14 +1006,15 @@ def eliminar_grupo_funct():
 
 
 def eliminar_foto_funct():
-	global indice
+	global indice,run_animation
 	if not lock:
 		photos.remove(photos[indice])
 
 		if indice >= len(photos):
 			indice = len(photos)-1
 
-		show_photo()
+		run_animation = False
+		window.after(70, show_photo)
 
 
 def invertir_interface():
@@ -993,7 +1045,7 @@ def invertir_interface():
 	ngf_desde_box.focus_set()	
 
 def invertir_grupo():
-	global photos,lock,invertir
+	global photos,lock,invertir,run_animation
 
 	nuevo_grupo_frame.pack_forget()
 	lock = False
@@ -1029,15 +1081,19 @@ def invertir_grupo():
 			nuevas_fotos.append(photos[x-1])
 
 	photos = nuevas_fotos
-	print("hola")
-	show_photo()
+	run_animation = False
+	window.after(70, show_photo)
 
 def add_zoom(mouse):
+	global run_animation
 	if photos[indice][0].last_factor != None:
 		photos[indice][0].last_factor = None
-		show_photo()
+		
+		run_animation = False
+		window.after(70, show_photo)
 	else:
-		show_photo(zoom = 200,zoom_center = [mouse.x,mouse.y])
+		run_animation = False
+		window.after(70, lambda:show_photo(zoom = 200,zoom_center = [mouse.x,mouse.y]))
 
 
 def destroy_img_display():
@@ -1082,15 +1138,10 @@ posicionando_indice= False
 cambiando_indice = False
 creating_group = False
 invertir = False
+run_animation = True
 advance_automatic_unite = 1
 
-
-#interface control vars
-n_arriba = None
-n_abajo = None
-n_izquierda = None
-n_derecha = None
-
+# show_photo
 
 # group control
 
